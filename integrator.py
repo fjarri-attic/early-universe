@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy
 import sys
 import time
@@ -266,9 +268,9 @@ class Integrator:
         t = 0
 
         if half_step:
-            print "Sampling at t =",
+            print("Sampling at t =", end=' ')
         else:
-            print "Skipping callbacks at t =",
+            print("Skipping callbacks at t =", end=' ')
 
         for step in xrange(self.steps * (2 if half_step else 1)):
             stepper(psi, psi, t)
@@ -276,22 +278,22 @@ class Integrator:
 
             if (step + 1) % (self.steps / self.samples * (2 if half_step else 1)) == 0:
                 if half_step:
-                    print t,
+                    print(t, end=' ')
                     sys.stdout.flush()
                     t_collector = time.time()
                     results.append(collector(psi))
                     t_collectors += time.time() - t_collector
                 else:
-                    print t,
+                    print(t, end=' ')
                     sys.stdout.flush()
 
-        print
+        print()
 
         t_total = time.time() - t_start
 
-        print "Total time:", t_total, "s"
+        print("Total time:", t_total, "s")
         if half_step:
-            print "Collectors time:", t_collectors, "s"
+            print("Collectors time:", t_collectors, "s")
 
         if half_step:
             return results
@@ -310,7 +312,7 @@ class Integrator:
         # calculate the error (separately for each ensemble)
         batched_norm = lambda a: numpy.sqrt((numpy.abs(a) ** 2).sum(-1))
         psi_errors = batched_norm(psi_double.get() - psi.get()) / batched_norm(psi.get())
-        print "Psi: mean err =", psi_errors.mean(), "max err =", psi_errors.max()
+        print("Psi: mean err =", psi_errors.mean(), "max err =", psi_errors.max())
 
         # calculate result errors
         errors = dict(psi_strong_mean=psi_errors.mean(), psi_strong_max=psi_errors.max())
@@ -318,6 +320,6 @@ class Integrator:
             res_double = results_double[-1][key]
             res = results[-1][key]
             errors[key] = numpy.linalg.norm(res_double - res) / numpy.linalg.norm(res)
-            print "Error in", key, "=", errors[key]
+            print("Error in", key, "=", errors[key])
 
         return results, errors
