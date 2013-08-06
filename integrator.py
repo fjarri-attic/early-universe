@@ -92,7 +92,7 @@ def get_nonlinear2(state_arr, scalar_dtype, nonlinear_module):
         guiding_array=state_arr.shape[1:],
         render_kwds=dict(
             nonlinear=nonlinear_module,
-            div=functions.div(state_arr.dtype, numpy.int32)))
+            div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
 
 
 def get_nonlinear3(state_arr, scalar_dtype, nonlinear_module):
@@ -124,7 +124,7 @@ def get_nonlinear3(state_arr, scalar_dtype, nonlinear_module):
         guiding_array=state_arr.shape[1:],
         render_kwds=dict(
             nonlinear=nonlinear_module,
-            div=functions.div(state_arr.dtype, numpy.int32)))
+            div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
 
 
 def get_combine(state_arr, scalar_dtype, nonlinear_module):
@@ -150,7 +150,7 @@ def get_combine(state_arr, scalar_dtype, nonlinear_module):
         guiding_array=state_arr.shape[1:],
         render_kwds=dict(
             nonlinear=nonlinear_module,
-            div=functions.div(state_arr.dtype, numpy.int32)))
+            div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
 
 
 class RK4IPStepper(Computation):
