@@ -39,7 +39,6 @@ def nonlinear_no_potential(dtype, U, nu):
         %endfor
         """,
         render_kwds=dict(
-            components=components,
             mul=functions.mul(c_dtype, s_dtype),
             norm=functions.norm(c_dtype),
             U=U,
