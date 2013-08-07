@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import numpy
 import mplhelpers as mpl
@@ -42,7 +44,7 @@ def plot_1d_no_coupling_varying_L():
 
     colors = [mpl.color.f[c].main for c in ('blue', 'red', 'green', 'yellow')]
     linestyles = ['-', '--', '-.', ':']
-    print "* 1d_no_coupling_varying_L"
+    print("* 1d_no_coupling_varying_L")
 
     s = fig.add_subplot(111, xlabel='$\\mathit{\\tau}$', ylabel='$\\mathit{J}$')
 
@@ -62,7 +64,7 @@ def plot_1d_no_coupling_varying_L():
         n0e = numpy.array(results['Nminus_std']) / numpy.sqrt(results['ensembles']) / N
         n1m = numpy.array(results['Nplus_mean']) / N
         n1e = numpy.array(results['Nplus_std']) / numpy.sqrt(results['ensembles']) / N
-        print L, results['errors']['Nminus_mean']
+        print(L, results['errors']['Nminus_mean'])
 
         ax = s.plot(times, (n1m - n0m) / 4, label="$L={L},\\,M={M}$".format(L=L, M=modes),
             color=colors[i], linestyle=linestyles[i], dashes=mpl.dash[linestyles[i]])
@@ -85,7 +87,7 @@ def plot_1d_varying_coupling():
 
     colors = [mpl.color.f[c].main for c in ('blue', 'red', 'green', 'yellow')]
     linestyles = ['-', '--', '-.', ':']
-    print "* 1d_varying_coupling"
+    print("* 1d_varying_coupling")
 
     fig = mpl.figure()
     s = fig.add_subplot(111, xlabel='$\\mathit{\\tau}$', ylabel='$\\mathit{J}$')
@@ -104,7 +106,7 @@ def plot_1d_varying_coupling():
         n0e = numpy.array(results['Nminus_std']) / numpy.sqrt(results['ensembles']) / N
         n1m = numpy.array(results['Nplus_mean']) / N
         n1e = numpy.array(results['Nplus_std']) / numpy.sqrt(results['ensembles']) / N
-        print nu, results['errors']['Nminus_mean']
+        print(nu, results['errors']['Nminus_mean'])
 
         #ax = s.plot(times, n0m, label="$\\nu = {nu}$".format(nu=nu),
         #    color=colors[i], linestyle=linestyles[i], dashes=mpl.dash[linestyles[i]])
@@ -129,7 +131,7 @@ def plot_1d_varying_g12():
 
     colors = [mpl.color.f[c].main for c in ('blue', 'red', 'green', 'yellow')]
     linestyles = ['-', '--', '-.', ':']
-    print "* 1d_varying_g12"
+    print("* 1d_varying_g12")
 
     fig = mpl.figure()
     s = fig.add_subplot(111, xlabel='$\\mathit{\\tau}$', ylabel='$\\mathit{J}$')
@@ -148,7 +150,7 @@ def plot_1d_varying_g12():
         n0e = numpy.array(results['Nminus_std']) / numpy.sqrt(results['ensembles']) / N
         n1m = numpy.array(results['Nplus_mean']) / N
         n1e = numpy.array(results['Nplus_std']) / numpy.sqrt(results['ensembles']) / N
-        print U12, results['errors']['Nminus_mean']
+        print(U12, results['errors']['Nminus_mean'])
 
         #ax = s.plot(times, n0m, label="$\\nu = {nu}$".format(nu=nu),
         #    color=colors[i], linestyle=linestyles[i], dashes=mpl.dash[linestyles[i]])
@@ -177,8 +179,8 @@ def plot_1d_density():
         steps=50000, modes=modes, ensembles=1, samples=250)
 
     n = numpy.array(results['density']).transpose(1, 0, 2)
-    print "* 1d_density"
-    print results['errors']['density']
+    print("* 1d_density")
+    print(results['errors']['density'])
     times = numpy.linspace(0, results['t'], results['samples'] + 1)
 
     fig = mpl.figure()
@@ -212,7 +214,7 @@ def plot_2d_varying_coupling():
 
     colors = [mpl.color.f[c].main for c in ('blue', 'red', 'green', 'yellow')]
     linestyles = ['-', '--', '-.', ':']
-    print "* 2d_varying_coupling"
+    print("* 2d_varying_coupling")
 
     fig = mpl.figure()
     s = fig.add_subplot(111, xlabel='$\\mathit{\\tau}$', ylabel='$\\mathit{J}$')
@@ -230,7 +232,7 @@ def plot_2d_varying_coupling():
         n0e = numpy.array(results['Nminus_std']) / numpy.sqrt(results['ensembles']) / N
         n1m = numpy.array(results['Nplus_mean']) / N
         n1e = numpy.array(results['Nplus_std']) / numpy.sqrt(results['ensembles']) / N
-        print nu, results['errors']['Nminus_mean']
+        print(nu, results['errors']['Nminus_mean'])
 
         ax = s.plot(times, (n1m - n0m) / 4, label="$\\nu = {nu}$".format(nu=nu),
             color=colors[i], linestyle=linestyles[i], dashes=mpl.dash[linestyles[i]])
@@ -257,8 +259,8 @@ def plot_2d_density():
         steps=5000, modes=modes, ensembles=1, samples=samples)
 
     n = numpy.array(results['density']).transpose(1, 0, 2, 3)
-    print "* 2d_density"
-    print results['errors']['density']
+    print("* 2d_density")
+    print(results['errors']['density'])
     times = numpy.linspace(0, results['t'], results['samples'] + 1)
     levels = numpy.linspace(-0.5, 0.5, 11)
 
@@ -318,8 +320,8 @@ def plot_contents_pic():
         steps=5000, modes=modes, ensembles=1, samples=samples)
 
     n = numpy.array(results['density']).transpose(1, 0, 2, 3)
-    print "* contents (2d density)"
-    print results['errors']['density']
+    print("* contents (2d density)")
+    print(results['errors']['density'])
     times = numpy.linspace(0, results['t'], results['samples'] + 1)
     levels = numpy.linspace(-0.5, 0.5, 11)
 
@@ -359,8 +361,8 @@ def plot_3d_density():
         steps=5000, modes=modes, ensembles=1, samples=samples)
 
     n = numpy.array(results['slice']).transpose(1, 0, 2, 3)
-    print "* 3d_density"
-    print results['errors']['slice']
+    print("* 3d_density")
+    print(results['errors']['slice'])
     times = numpy.linspace(0, results['t'], results['samples'] + 1)
     levels = numpy.linspace(-0.5, 0.5, 11)
 
@@ -450,8 +452,8 @@ def plot_2d_density_movie():
     n = numpy.array(results['density']).transpose(1, 0, 2, 3)
     n_nobs = numpy.array(results['density_nobs']).transpose(1, 0, 2, 3)
 
-    print "* 2d_density"
-    print results['errors']['density']
+    print("* 2d_density")
+    print(results['errors']['density'])
     times = numpy.linspace(0, results['t'], results['samples'] + 1)
     levels = numpy.linspace(-0.5, 0.5, 11)
 
