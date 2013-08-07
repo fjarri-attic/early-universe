@@ -182,6 +182,9 @@ def run(dims, initial='same', gamma=1, nu=0, L_trap=10., samples=100,
 
 
 def get(dim, **kwds):
+    if not os.path.exists('results'):
+        os.mkdir('results')
+
     name = "results/" + dim + " " + \
         " ".join([name + "=" + str(val) for name, val in kwds.items()]) + ".pickle"
 
