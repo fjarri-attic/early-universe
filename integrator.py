@@ -19,7 +19,7 @@ def get_ksquared(shape, box):
     if len(shape) > 1:
         full_ks = numpy.meshgrid(*ks, indexing='ij')
     else:
-        full_ks = [ks]
+        full_ks = ks
 
     return sum([full_k ** 2 for full_k in full_ks])
 
