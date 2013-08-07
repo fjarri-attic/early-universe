@@ -13,12 +13,10 @@ def setup_backend(draft=True):
     if draft:
         backend_name = "Agg"
         backend_params = {
-            'backend': 'ps',
-            'text.usetex': False
+        #    'backend': 'ps',
+        #    'text.usetex': False
         }
     else:
-        backend_name = "pgf"
-
         backend_name = "pgf"
         backend_params = {
             "text.usetex": True,
