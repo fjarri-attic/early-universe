@@ -48,6 +48,7 @@ def get_nonlinear_wrapper(c_dtype, nonlinear_module, dt):
 
 
 def get_nonlinear1(state_arr, scalar_dtype, nonlinear_module):
+    # output = N(input)
     return PureParallel(
         [
             Parameter('output', Annotation(state_arr, 'o')),
@@ -67,100 +68,101 @@ def get_nonlinear1(state_arr, scalar_dtype, nonlinear_module):
         render_kwds=dict(nonlinear=nonlinear_module))
 
 
-def get_nonlinear2(state_arr, scalar_dtype, nonlinear_module):
+def get_nonlinear2(state_arr, scalar_dtype, nonlinear_module, dt):
+    # k2 = N(psi_I + k1 / 2, t + dt / 2)
+    # k3 = N(psi_I + k2 / 2, t + dt / 2)
+    # psi_4 = psi_I + k3 (argument for the 4-th step k-propagation)
+    # psi_k = psi_I + (k1 + 2(k2 + k3)) / 6 (argument for the final k-propagation)
     return PureParallel(
         [
-            Parameter('output', Annotation(state_arr, 'o')),
-            Parameter('p', Annotation(state_arr, 'i')),
-            Parameter('pk', Annotation(state_arr, 'i')),
+            Parameter('psi_k', Annotation(state_arr, 'o')),
+            Parameter('psi_4', Annotation(state_arr, 'o')),
+            Parameter('psi_I', Annotation(state_arr, 'i')),
+            Parameter('k1', Annotation(state_arr, 'i')),
             Parameter('t', Annotation(scalar_dtype))],
         """
         <%
             all_indices = ', '.join(idxs)
         %>
 
-        ${output.ctype} p0 = ${p.load_idx}(0, ${all_indices});
-        ${output.ctype} p1 = ${p.load_idx}(1, ${all_indices});
-        ${output.ctype} pk0 = ${pk.load_idx}(0, ${all_indices});
-        ${output.ctype} pk1 = ${pk.load_idx}(1, ${all_indices});
+        ${psi_k.ctype} psi_I_0 = ${psi_I.load_idx}(0, ${all_indices});
+        ${psi_k.ctype} psi_I_1 = ${psi_I.load_idx}(1, ${all_indices});
+        ${psi_k.ctype} k1_0 = ${k1.load_idx}(0, ${all_indices});
+        ${psi_k.ctype} k1_1 = ${k1.load_idx}(1, ${all_indices});
 
-        ${output.ctype} t1_0 = ${nonlinear}0(${div}(pk0, 2) + p0, ${div}(pk1, 2) + p1, ${t});
-        ${output.ctype} t1_1 = ${nonlinear}1(${div}(pk0, 2) + p0, ${div}(pk1, 2) + p1, ${t});
+        ${psi_k.ctype} k2_0 = ${nonlinear}0(
+            psi_I_0 + ${div}(k1_0, 2),
+            psi_I_1 + ${div}(k1_1, 2),
+            ${t} + ${dt} / 2);
+        ${psi_k.ctype} k2_1 = ${nonlinear}1(
+            psi_I_0 + ${div}(k1_0, 2),
+            psi_I_1 + ${div}(k1_1, 2),
+            ${t} + ${dt} / 2);
 
-        ${output.ctype} t2_0 = ${div}(pk0, 6) + p0;
-        ${output.ctype} t2_1 = ${div}(pk1, 6) + p1;
+        ${psi_k.ctype} k3_0 = ${nonlinear}0(
+            psi_I_0 + ${div}(k2_0, 2),
+            psi_I_1 + ${div}(k2_1, 2),
+            ${t} + ${dt} / 2);
+        ${psi_k.ctype} k3_1 = ${nonlinear}1(
+            psi_I_0 + ${div}(k2_0, 2),
+            psi_I_1 + ${div}(k2_1, 2),
+            ${t} + ${dt} / 2);
 
-        ${output.ctype} t3_0 = ${nonlinear}0(${div}(t1_0, 2) + p0, ${div}(t1_1, 2) + p1, ${t});
-        ${output.ctype} t3_1 = ${nonlinear}1(${div}(t1_0, 2) + p0, ${div}(t1_1, 2) + p1, ${t});
+        ${psi_4.store_idx}(0, ${all_indices}, psi_I_0 + k3_0);
+        ${psi_4.store_idx}(1, ${all_indices}, psi_I_1 + k3_1);
 
-        ${output.store_idx}(0, ${all_indices}, ${div}(t1_0, 3) + t2_0 + ${div}(t3_0, 3));
-        ${output.store_idx}(1, ${all_indices}, ${div}(t1_1, 3) + t2_1 + ${div}(t3_1, 3));
+        ${psi_k.store_idx}(
+            0, ${all_indices},
+            psi_I_0 + ${div}(k1_0, 6) + ${div}(k2_0, 3) + ${div}(k3_0, 3));
+        ${psi_k.store_idx}(
+            1, ${all_indices},
+            psi_I_1 + ${div}(k1_1, 6) + ${div}(k2_1, 3) + ${div}(k3_1, 3));
         """,
         guiding_array=state_arr.shape[1:],
         render_kwds=dict(
             nonlinear=nonlinear_module,
+            dt=dtypes.c_constant(dt, scalar_dtype),
             div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
 
 
-def get_nonlinear3(state_arr, scalar_dtype, nonlinear_module):
+def get_nonlinear3(state_arr, scalar_dtype, nonlinear_module, dt):
+    # k4 = N(D(psi_4), t + dt)
+    # output = D(psi_k) + k4 / 6
     return PureParallel(
         [
             Parameter('output', Annotation(state_arr, 'o')),
-            Parameter('p', Annotation(state_arr, 'i')),
-            Parameter('pk', Annotation(state_arr, 'i')),
+            Parameter('kprop_psi_k', Annotation(state_arr, 'i')),
+            Parameter('kprop_psi_4', Annotation(state_arr, 'i')),
             Parameter('t', Annotation(scalar_dtype))],
         """
         <%
             all_indices = ', '.join(idxs)
         %>
 
-        ${output.ctype} p0 = ${p.load_idx}(0, ${all_indices});
-        ${output.ctype} p1 = ${p.load_idx}(1, ${all_indices});
-        ${output.ctype} pk0 = ${pk.load_idx}(0, ${all_indices});
-        ${output.ctype} pk1 = ${pk.load_idx}(1, ${all_indices});
+        ${output.ctype} psi4_0 = ${kprop_psi_4.load_idx}(0, ${all_indices});
+        ${output.ctype} psi4_1 = ${kprop_psi_4.load_idx}(1, ${all_indices});
+        ${output.ctype} psik_0 = ${kprop_psi_k.load_idx}(0, ${all_indices});
+        ${output.ctype} psik_1 = ${kprop_psi_k.load_idx}(1, ${all_indices});
 
-        ${output.ctype} t1_0 = ${nonlinear}0(${div}(pk0, 2) + p0, ${div}(pk1, 2) + p1, ${t});
-        ${output.ctype} t1_1 = ${nonlinear}1(${div}(pk0, 2) + p0, ${div}(pk1, 2) + p1, ${t});
+        ${output.ctype} k4_0 = ${nonlinear}0(psi4_0, psi4_1, ${t} + ${dt});
+        ${output.ctype} k4_1 = ${nonlinear}1(psi4_0, psi4_1, ${t} + ${dt});
 
-        ${output.ctype} t2_0 = ${nonlinear}0(${div}(t1_0, 2) + p0, ${div}(t1_1, 2) + p1, ${t});
-        ${output.ctype} t2_1 = ${nonlinear}1(${div}(t1_0, 2) + p0, ${div}(t1_1, 2) + p1, ${t});
-
-        ${output.store_idx}(0, ${all_indices}, t2_0 + p0);
-        ${output.store_idx}(1, ${all_indices}, t2_1 + p1);
+        ${output.store_idx}(0, ${all_indices}, psik_0 + ${div}(k4_0, 6));
+        ${output.store_idx}(1, ${all_indices}, psik_1 + ${div}(k4_1, 6));
         """,
         guiding_array=state_arr.shape[1:],
         render_kwds=dict(
             nonlinear=nonlinear_module,
-            div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
-
-
-def get_combine(state_arr, scalar_dtype, nonlinear_module):
-    return PureParallel(
-        [
-            Parameter('output', Annotation(state_arr, 'o')),
-            Parameter('p2', Annotation(state_arr, 'i')),
-            Parameter('p3', Annotation(state_arr, 'i')),
-            Parameter('t', Annotation(scalar_dtype))],
-        """
-        <%
-            all_indices = ', '.join(idxs)
-        %>
-
-        ${output.ctype} p2_0 = ${p2.load_idx}(0, ${all_indices});
-        ${output.ctype} p2_1 = ${p2.load_idx}(1, ${all_indices});
-        ${output.ctype} p3_0 = ${p3.load_idx}(0, ${all_indices});
-        ${output.ctype} p3_1 = ${p3.load_idx}(1, ${all_indices});
-
-        ${output.store_idx}(0, ${all_indices}, p2_0 + ${div}(${nonlinear}0(p3_0, p3_1, ${t}), 6));
-        ${output.store_idx}(1, ${all_indices}, p2_1 + ${div}(${nonlinear}1(p3_0, p3_1, ${t}), 6));
-        """,
-        guiding_array=state_arr.shape[1:],
-        render_kwds=dict(
-            nonlinear=nonlinear_module,
+            dt=dtypes.c_constant(dt, scalar_dtype),
             div=functions.div(state_arr.dtype, numpy.int32, out_dtype=state_arr.dtype)))
 
 
 class RK4IPStepper(Computation):
+    """
+    The integration method is RK4IP taken from the thesis by B. Caradoc-Davies
+    "Vortex Dynamics in Bose-Einstein Condensates" (2000),
+    namely Eqns. B.10 (p. 166).
+    """
 
     def __init__(self, state_arr, dt, box=None, kinetic_coeff=1, nonlinear_module=None):
         scalar_dtype = dtypes.real_for(state_arr.dtype)
@@ -198,9 +200,8 @@ class RK4IPStepper(Computation):
 
         nonlinear_wrapper = get_nonlinear_wrapper(state_arr.dtype, nonlinear_module, dt)
         self._N1 = get_nonlinear1(state_arr, scalar_dtype, nonlinear_wrapper)
-        self._N2 = get_nonlinear2(state_arr, scalar_dtype, nonlinear_wrapper)
-        self._N3 = get_nonlinear3(state_arr, scalar_dtype, nonlinear_wrapper)
-        self._combine = get_combine(state_arr, scalar_dtype, nonlinear_wrapper)
+        self._N2 = get_nonlinear2(state_arr, scalar_dtype, nonlinear_wrapper, dt)
+        self._N3 = get_nonlinear3(state_arr, scalar_dtype, nonlinear_wrapper, dt)
 
     def _add_kprop(self, plan, output, input_, kprop_device):
         temp = plan.temp_array_like(output)
@@ -213,25 +214,31 @@ class RK4IPStepper(Computation):
 
         kprop_device = plan.persistent_array(self._kprop)
 
-        p = plan.temp_array_like(output)
-        self._add_kprop(plan, p, input_, kprop_device)
+        # psi_I = D(psi)
+        psi_I = plan.temp_array_like(output)
+        self._add_kprop(plan, psi_I, input_, kprop_device)
 
+        # k1 = D(N(psi, t))
+        k1 = plan.temp_array_like(output)
         temp = plan.temp_array_like(output)
-        pk = plan.temp_array_like(output)
         plan.computation_call(self._N1, temp, input_, t)
-        self._add_kprop(plan, pk, temp, kprop_device)
+        self._add_kprop(plan, k1, temp, kprop_device)
 
-        temp = plan.temp_array_like(output)
-        p2 = plan.temp_array_like(output)
-        plan.computation_call(self._N2, temp, p, pk, t)
-        self._add_kprop(plan, p2, temp, kprop_device)
+        # k2 = N(psi_I + k1 / 2, t + dt / 2)
+        # k3 = N(psi_I + k2 / 2, t + dt / 2)
+        # psi_4 = psi_I + k3 (argument for the 4-th step k-propagation)
+        # psi_k = psi_I + (k1 + 2(k2 + k3)) / 6 (argument for the final k-propagation)
+        psi_4 = plan.temp_array_like(output)
+        psi_k = plan.temp_array_like(output)
+        plan.computation_call(self._N2, psi_k, psi_4, psi_I, k1, t)
 
-        temp = plan.temp_array_like(output)
-        p3 = plan.temp_array_like(output)
-        plan.computation_call(self._N3, temp, p, pk, t)
-        self._add_kprop(plan, p3, temp, kprop_device)
-
-        plan.computation_call(self._combine, output, p2, p3, t)
+        # k4 = N(D(psi_4), t + dt)
+        # output = D(psi_k) + k4 / 6
+        kprop_psi_k = plan.temp_array_like(output)
+        self._add_kprop(plan, kprop_psi_k, psi_k, kprop_device)
+        kprop_psi_4 = plan.temp_array_like(output)
+        self._add_kprop(plan, kprop_psi_4, psi_4, kprop_device)
+        plan.computation_call(self._N3, output, kprop_psi_k, kprop_psi_4, t)
 
         return plan
 
