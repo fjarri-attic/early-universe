@@ -4,6 +4,7 @@ import numpy
 import sys
 import time
 
+from reikna.helpers import product
 from reikna.cluda import dtypes, Module, Snippet, functions
 from reikna.core import Computation, Parameter, Annotation, Transformation, Type
 
@@ -314,6 +315,13 @@ class Integrator:
         else:
             return [collector(psi)]
 
+    def _batched_norm(self, x):
+        norms = numpy.abs(x) ** 2
+
+        # Sum over spatial dimensions
+        norms = norms.reshape(x.shape[0], x.shape[1], product(x.shape[2:]))
+        return numpy.sqrt(norms.sum(-1))
+
     def __call__(self, psi, collector):
 
         # double step (to estimate the convergence)
@@ -324,8 +332,7 @@ class Integrator:
         results = self._integrate(psi, True, collector)
 
         # calculate the error (separately for each ensemble)
-        batched_norm = lambda a: numpy.sqrt((numpy.abs(a) ** 2).sum(1))
-        psi_errors = batched_norm(psi_double.get() - psi.get()) / batched_norm(psi.get())
+        psi_errors = self._batched_norm(psi_double.get() - psi.get()) / self._batched_norm(psi.get())
         print("Psi: mean err =", psi_errors.mean(), "max err =", psi_errors.max())
 
         # calculate result errors
