@@ -194,7 +194,7 @@ def get(dim, **kwds):
     else:
         dims = {'1d': 1, '2d': 2, '3d': 3}
         results = run(dims[dim], **kwds)
-        with open(name, 'w') as f:
+        with open(name, 'wb') as f:
             pickle.dump(results, f, protocol=2)
 
     return results

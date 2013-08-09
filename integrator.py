@@ -10,6 +10,8 @@ from reikna.core import Computation, Parameter, Annotation, Transformation, Type
 from reikna.fft import FFT
 from reikna.pureparallel import PureParallel
 
+_range = xrange if sys.version_info[0] < 3 else range
+
 
 def get_ksquared(shape, box):
     ks = [
@@ -284,7 +286,7 @@ class Integrator:
         else:
             print("Skipping callbacks at t =", end=' ')
 
-        for step in xrange(self.steps * (2 if half_step else 1)):
+        for step in _range(self.steps * (2 if half_step else 1)):
             stepper(psi, psi, t)
             t += dt
 
@@ -322,7 +324,7 @@ class Integrator:
         results = self._integrate(psi, True, collector)
 
         # calculate the error (separately for each ensemble)
-        batched_norm = lambda a: numpy.sqrt((numpy.abs(a) ** 2).sum(-1))
+        batched_norm = lambda a: numpy.sqrt((numpy.abs(a) ** 2).sum(1))
         psi_errors = batched_norm(psi_double.get() - psi.get()) / batched_norm(psi.get())
         print("Psi: mean err =", psi_errors.mean(), "max err =", psi_errors.max())
 
