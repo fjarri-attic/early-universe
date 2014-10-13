@@ -186,7 +186,7 @@ def get(dim, **kwds):
         os.mkdir('results')
 
     name = "results/" + dim + " " + \
-        " ".join([name + "=" + str(val) for name, val in kwds.items()]) + ".pickle"
+        " ".join([name + "=" + str(kwds[name]) for name in sorted(kwds)]) + ".pickle"
 
     if os.path.exists(name):
         with open(name) as f:
